@@ -1,0 +1,111 @@
+@RestResource(urlMapping='/Skedulo/AvailableResource/*')
+Global with sharing class skedRestPostController {
+    public static string regionId { get; set; }
+    public static string homeId { get; set; }
+    public static string suiteId { get; set; }
+    public static string roomId { get; set; }
+    public static string timezone { get; set; }
+    public static String startDate { get; set; }
+    public static Integer duration { get; set; }
+    public static Integer intStartTime { get; set; }
+    public static Integer intEndTime { get; set; }
+    public static String endDate { get; set; }
+    public static Decimal latitude { get; set; }
+    public static Decimal longitude { get; set; }
+    public static List<Id> tagIds { get; set; }
+    public static List<Id> eventIds { get; set; }
+    public static Boolean includeResourceInfo { get; set; }
+    public static Integer offsetTime { get; set; }
+    
+    
+    @HttpPost
+    global static void doPost() {
+        RestRequest req = RestContext.request;
+        RestResponse res = RestContext.response;
+        
+        String uri = req.requestURI;
+        String reqBody = req.requestBody.toString();
+        Integer resStatusCode = res.statusCode; 
+        Boolean success = TRUE;
+        
+        Map<String, Object> body = new Map<String, Object>();
+        body = (Map<String, Object>)JSON.deserializeUntyped(reqBody);
+        
+        
+        //Initialize the response object
+        
+        resp resp = new resp();
+        err errors = new err();
+        skedJobSchedulingModel.Criteria crit=new skedJobSchedulingModel.Criteria();
+        crit.regionId = (String)body.get('regionId');
+        crit.homeId = (String)body.get('homeId');
+        crit.suiteId = (String)body.get('suiteId');
+        crit.roomId = (String)body.get('roomId');
+        crit.timezone = (String)body.get('timezone');
+        crit.startDate = (String)body.get('startDate');
+        crit.duration = (Integer)body.get('duration');
+        crit.intStartTime = (Integer)body.get('intStartTime');
+        crit.intEndTime = (Integer)body.get('intEndTime');
+        crit.endDate = (String)body.get('endDate');
+        crit.latitude = (Decimal)body.get('latitude');
+        crit.longitude = (Decimal)body.get('longitude');
+        crit.tagIds = (List<Id>)body.get('tagIds');
+        crit.eventIds = (List<Id>)body.get('eventIds');
+        crit.includeResourceInfo = (Boolean)body.get('includeResourceInfo');
+        crit.offsetTime = (Integer)body.get('offsetTime');
+        
+        if (string.isBlank(regionId) == NULL) 
+        {
+            errors.message = 'Missing regionId parameter.';
+            errors.type = 'Bad Request';
+            errors.code = '400';
+            success = FALSE;
+        }
+        else if (timezone == NULL) 
+        {
+            errors.message = 'Missing TimeZone.';
+            errors.type = 'Bad Request';
+            errors.code = '400';
+            success = FALSE;
+        }
+        
+        if (success == TRUE) 
+        {    
+            try{
+                skedJobSchedulingCtrlHandler sked = new skedJobSchedulingCtrlHandler();
+                sked.getAvailableResources(criteria);
+            } catch (Exception e) 
+            {
+                errors.message = 'Error found on API execution ' + e.getMessage();
+                errors.type = 'Server Error';
+                errors.code = '500';            
+                success = FALSE;
+            }
+        }        
+        
+        //Finalizing the response object.
+        
+        if (success) {
+            res.statusCode = 200;
+        } else {
+            resp.error = errors;        
+            res.responseBody = Blob.valueOf(JSON.serialize(resp));    
+            res.statusCode = Integer.valueOf(errors.code);
+        }          
+    }
+    
+    //From the Main class response
+    
+    public class resp {
+        public err error { get; set; }                       
+    }
+    
+    //From the sub class response
+    public class err {
+        public String message { get; set; }
+        public String type { get; set; }
+        public String code { get; set; }        
+        public String trace_id { get; set; }        
+    }   
+    
+}
